@@ -1,0 +1,33 @@
+{
+  "expo": {
+    "name": "Nibras",
+    "slug": "nibras",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B0F14"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourhandle.nibras",
+      "infoPlist": {
+        "NSDocumentsFolderUsageDescription": "Nibras reads project files you select to scan for security issues."
+      }
+    },
+    "android": {
+      "package": "com.yourhandle.nibras",
+      "permissions": ["READ_EXTERNAL_STORAGE"]
+    },
+    "plugins": ["expo-document-picker"],
+    "extra": {
+      "eas": {
+        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+      }
+    }
+  }
+}
