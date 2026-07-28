@@ -26,7 +26,7 @@
     "plugins": ["expo-document-picker"],
     "extra": {
       "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
+        "projectId": "20a72aa2-e553-4b25-a55c-80c9da8f2d11
       }
     }
   }
