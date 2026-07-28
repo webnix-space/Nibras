@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive foreground SVG (transparent background) for Android adaptive icon.
+     This file contains only the white glyph (shield + nodes) so Android can layer it over the background.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-labelledby="title desc">
+  <title id="title">Nibras adaptive foreground</title>
+  <desc id="desc">Shield glyph with neural nodes — transparent background.</desc>
+  <g fill="none" stroke="none">
+    <!-- shield silhouette (transparent fill) kept as shape for foreground -> filled white when rendering -->
+    <path d="M512 180c135 0 196 90 196 225 0 121-168 270-196 270s-196-149-196-270c0-135 61-225 196-225z" fill="#FFFFFF"/>
+    <!-- simplified nodes and links -->
+    <g transform="translate(0,40) scale(0.92)">
+      <line x1="352" y1="192" x2="432" y2="232" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" />
+      <line x1="432" y1="232" x2="612" y2="282" stroke="#FFFFFF" stroke-width="24" stroke-linecap="round" />
+      <line x1="352" y1="192" x2="312" y2="352" stroke="#FFFFFF" stroke-width="18" stroke-linecap="round" />
+
+      <circle cx="352" cy="192" r="36" fill="#FFFFFF"/>
+      <circle cx="432" cy="232" r="52" fill="#FFFFFF"/>
+      <circle cx="612" cy="282" r="28" fill="#FFFFFF"/>
+      <circle cx="312" cy="352" r="20" fill="#FFFFFF"/>
+    </g>
+  </g>
+</svg>
