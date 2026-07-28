@@ -14,13 +14,13 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yourhandle.nibras",
+      "bundleIdentifier": "com.webnixspace.nibras",
       "infoPlist": {
         "NSDocumentsFolderUsageDescription": "Nibras reads project files you select to scan for security issues."
       }
     },
     "android": {
-      "package": "com.yourhandle.nibras",
+      "package": "com.webnixspace.nibras",
       "permissions": ["READ_EXTERNAL_STORAGE"]
     },
     "plugins": ["expo-document-picker"],
