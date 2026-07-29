@@ -21,9 +21,23 @@
     },
     "android": {
       "package": "com.webnixspace.nibras",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B0F14"
+      },
       "permissions": ["READ_EXTERNAL_STORAGE"]
     },
-    "plugins": ["expo-document-picker"],
+    "plugins": [
+      "expo-document-picker",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.9.25"
+          }
+        }
+      ]
+    ],
     "extra": {
       "eas": {
         "projectId": "20a72aa2-e553-4b25-a55c-80c9da8f2d11"
