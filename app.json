@@ -14,13 +14,13 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.webnixspace.nibras",
+      "bundleIdentifier": "com.webnixhub.nibras",
       "infoPlist": {
         "NSDocumentsFolderUsageDescription": "Nibras reads project files you select to scan for security issues."
       }
     },
     "android": {
-      "package": "com.webnixspace.nibras",
+      "package": "com.webnixhub.nibras",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B0F14"
