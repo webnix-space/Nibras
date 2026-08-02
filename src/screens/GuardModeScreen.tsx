@@ -39,7 +39,7 @@ export default function GuardModeScreen() {
 
     const result = await DocumentPicker.getDocumentAsync({
       multiple: true,
-      type: ['text/*', 'application/javascript', 'application/json'],
+      type: '*/*',
     });
 
     if (result.canceled) return;
