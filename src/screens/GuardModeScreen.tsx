@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { scanProject, severityCounts, Finding, Severity } from '../rules/patternRules';
 import { useNibrasStore, canScan, FREE_DAILY_LIMIT } from '../store/useNibrasStore';
 import { loadModel, generate, isModelLoaded, isQvacAvailable } from '../qvac/qvacClient';
