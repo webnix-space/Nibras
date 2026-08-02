@@ -11,7 +11,7 @@
       "resizeMode": "contain",
       "backgroundColor": "#0B0F14"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": ["assets/**/*"],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.webnixhub.nibras",
