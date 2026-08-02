@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system/legacy';
 import { scanFileContent, Finding, Severity } from '../rules/patternRules';
 import { scanAntipatterns } from '../rules/antipatternRules';
 import { runSemanticScan, SemanticFinding, SemanticCategory } from '../rules/qvacDeepScan';
@@ -40,6 +42,17 @@ export default function VaultModeScreen() {
 
   const { scansToday, isPro, incrementScanCount, resetDailyIfNeeded } = useNibrasStore();
   resetDailyIfNeeded();
+
+  async function handlePickFile() {
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+    if (result.canceled) return;
+    try {
+      const content = await FileSystem.readAsStringAsync(result.assets[0].uri);
+      setCode(content);
+    } catch (err) {
+      Alert.alert('Could not read file', String(err));
+    }
+  }
 
   async function handleReview() {
     if (!code.trim()) {
@@ -89,6 +102,10 @@ export default function VaultModeScreen() {
         Paste code for review — nothing is saved to disk.{' '}
         {isPro ? 'Unlimited scans' : `${scansToday}/${FREE_DAILY_LIMIT} scans today`}
       </Text>
+
+      <Pressable style={styles.pickButton} onPress={handlePickFile}>
+        <Text style={styles.pickButtonText}>Or pick a file instead</Text>
+      </Pressable>
 
       <TextInput
         style={styles.codeInput}
@@ -171,6 +188,15 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 60 },
   title: { fontSize: 28, fontWeight: '700', color: '#F3F4F6' },
   subtitle: { fontSize: 13, color: '#9CA3AF', marginTop: 4, marginBottom: 16, lineHeight: 18 },
+  pickButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  pickButtonText: {
+    color: '#5B8DEF',
+    fontSize: 13,
+    fontWeight: '600',
+  },
   codeInput: {
     backgroundColor: '#151A21',
     borderWidth: 1,
