@@ -39,7 +39,8 @@
             "compileSdkVersion": 36
           }
         }
-      ]
+      ],
+      "@qvac/sdk/expo-plugin"
     ],
     "extra": {
       "eas": {
