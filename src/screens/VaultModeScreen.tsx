@@ -15,12 +15,13 @@ import { scanFileContent, Finding, Severity } from '../rules/patternRules';
 import { scanAntipatterns } from '../rules/antipatternRules';
 import { runSemanticScan, SemanticFinding, SemanticCategory } from '../rules/qvacDeepScan';
 import { useNibrasStore, canScan, FREE_DAILY_LIMIT } from '../store/useNibrasStore';
+import { color, spacing, radius, type as t } from '../theme/tokens';
 
 const SEVERITY_COLOR: Record<Severity, string> = {
-  CRITICAL: '#DC2626',
-  HIGH: '#EA580C',
-  MEDIUM: '#D97706',
-  LOW: '#65A30D',
+  CRITICAL: color.critical,
+  HIGH: color.high,
+  MEDIUM: color.medium,
+  LOW: color.low,
 };
 
 const CATEGORY_LABEL: Record<SemanticCategory, string> = {
@@ -29,7 +30,7 @@ const CATEGORY_LABEL: Record<SemanticCategory, string> = {
   performance: 'Performance',
 };
 
-const CONFIDENCE_COLOR = { high: '#DC2626', medium: '#D97706', low: '#6B7280' };
+const CONFIDENCE_COLOR = { high: color.critical, medium: color.medium, low: color.textTertiary };
 
 export default function VaultModeScreen() {
   const [code, setCode] = useState('');
@@ -40,7 +41,7 @@ export default function VaultModeScreen() {
   const [tps, setTps] = useState<number | null>(null);
   const [semanticError, setSemanticError] = useState<string | null>(null);
 
-  const { scansToday, isPro, incrementScanCount, resetDailyIfNeeded } = useNibrasStore();
+  const { scansToday, isPro, incrementScanCount, resetDailyIfNeeded, recordScan } = useNibrasStore();
   resetDailyIfNeeded();
 
   async function handlePickFile() {
@@ -72,13 +73,13 @@ export default function VaultModeScreen() {
     setSemanticFindings([]);
 
     try {
-      // Fast tier — pattern matches only, deterministic, no AI dependency.
       const secretsAndInjection = scanFileContent('pasted-code', code);
       const antipatterns = scanAntipatterns('pasted-code', code);
-      setPatternFindings([...secretsAndInjection, ...antipatterns]);
+      const allPatternFindings = [...secretsAndInjection, ...antipatterns];
+      setPatternFindings(allPatternFindings);
       incrementScanCount();
+      recordScan('vault', 1, allPatternFindings);
 
-      // Semantic tier — QVAC, probabilistic, clearly separated in UI.
       try {
         const result = await runSemanticScan(code, setModelLoadPct);
         setModelLoadPct(null);
@@ -110,7 +111,7 @@ export default function VaultModeScreen() {
       <TextInput
         style={styles.codeInput}
         placeholder="Paste code here…"
-        placeholderTextColor="#4B5563"
+        placeholderTextColor={color.textTertiary}
         value={code}
         onChangeText={setCode}
         multiline
@@ -184,76 +185,69 @@ export default function VaultModeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0F14' },
-  content: { padding: 20, paddingBottom: 60 },
-  title: { fontSize: 28, fontWeight: '700', color: '#F3F4F6' },
-  subtitle: { fontSize: 13, color: '#9CA3AF', marginTop: 4, marginBottom: 16, lineHeight: 18 },
-  pickButton: {
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  pickButtonText: {
-    color: '#5B8DEF',
-    fontSize: 13,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: color.bg },
+  content: { padding: spacing.xl, paddingBottom: 60 },
+  title: { ...t.displayLarge, color: color.textPrimary },
+  subtitle: { ...t.body, color: color.textSecondary, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 18 },
+  pickButton: { alignSelf: 'flex-start', marginBottom: spacing.sm },
+  pickButtonText: { color: color.aiAccent, fontSize: 13, fontWeight: '600' },
   codeInput: {
-    backgroundColor: '#151A21',
+    backgroundColor: color.surface,
     borderWidth: 1,
-    borderColor: '#242A33',
-    borderRadius: 10,
-    color: '#E5E9F0',
-    padding: 12,
+    borderColor: color.border,
+    borderRadius: radius.md,
+    color: color.textPrimary,
+    padding: spacing.md,
     fontSize: 13,
     fontFamily: 'monospace',
     minHeight: 160,
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
   reviewButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: color.aiAccent,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.lg,
   },
   reviewButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  modelLoadBox: { backgroundColor: '#151A21', borderRadius: 8, padding: 12, marginBottom: 16 },
-  modelLoadText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center' },
+  modelLoadBox: { backgroundColor: color.surface, borderRadius: radius.sm, padding: spacing.md, marginBottom: spacing.lg },
+  modelLoadText: { color: color.textSecondary, fontSize: 13, textAlign: 'center' },
   tpsBox: {
     alignSelf: 'center',
-    backgroundColor: '#0F2E2B',
+    backgroundColor: color.pulseAccentBg,
     borderWidth: 1,
-    borderColor: '#1E6E68',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 16,
+    borderColor: color.pulseAccentBorder,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.lg,
   },
-  tpsText: { color: '#38BDB0', fontSize: 12, fontWeight: '700' },
+  tpsText: { color: color.pulseAccent, fontSize: 12, fontWeight: '700' },
   tierLabel: {
-    color: '#6B7280',
+    color: color.textTertiary,
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
-    marginTop: 8,
-    marginBottom: 8,
+    marginTop: spacing.sm,
+    marginBottom: spacing.sm,
   },
-  card: { backgroundColor: '#151A21', borderLeftWidth: 4, borderRadius: 8, padding: 12, marginBottom: 10 },
+  card: { backgroundColor: color.surface, borderLeftWidth: 4, borderRadius: radius.sm, padding: spacing.md, marginBottom: spacing.sm },
   cardTag: { fontSize: 11, fontWeight: '800' },
-  semanticHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  confidenceTag: { color: '#6B7280', fontSize: 11, fontWeight: '600' },
-  cardMessage: { color: '#F3F4F6', fontSize: 14, marginTop: 4, marginBottom: 6 },
-  cardMeta: { color: '#6B7280', fontSize: 12, marginBottom: 4 },
-  cardSnippet: { color: '#9CA3AF', fontSize: 12, fontFamily: 'monospace' },
-  fixLabel: { color: '#5B8DEF', fontSize: 10, fontWeight: '700', marginTop: 2, marginBottom: 2 },
+  semanticHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.xs },
+  confidenceTag: { color: color.textTertiary, fontSize: 11, fontWeight: '600' },
+  cardMessage: { color: color.textPrimary, fontSize: 14, marginTop: spacing.xs, marginBottom: spacing.xs },
+  cardMeta: { color: color.textTertiary, fontSize: 12, marginBottom: spacing.xs },
+  cardSnippet: { color: color.textSecondary, fontSize: 12, fontFamily: 'monospace' },
+  fixLabel: { color: color.aiAccent, fontSize: 10, fontWeight: '700', marginTop: spacing.xs, marginBottom: spacing.xs },
   errorBox: {
     backgroundColor: '#1A0F0F',
     borderWidth: 1,
     borderColor: '#5C2626',
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: radius.sm,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
   },
   errorText: { color: '#F3A5A5', fontSize: 13 },
-  empty: { color: '#6B7280', textAlign: 'center', marginTop: 40 },
+  empty: { color: color.textTertiary, textAlign: 'center', marginTop: 40 },
 });
