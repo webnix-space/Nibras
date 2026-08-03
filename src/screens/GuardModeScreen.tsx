@@ -5,16 +5,15 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { scanProject, severityCounts, Finding, Severity } from '../rules/patternRules';
 import { useNibrasStore, canScan, FREE_DAILY_LIMIT } from '../store/useNibrasStore';
 import { loadModel, generate, isModelLoaded, isQvacAvailable } from '../qvac/qvacClient';
+import { color, spacing, radius, type as t } from '../theme/tokens';
 
 const SEVERITY_COLOR: Record<Severity, string> = {
-  CRITICAL: '#DC2626',
-  HIGH: '#EA580C',
-  MEDIUM: '#D97706',
-  LOW: '#65A30D',
+  CRITICAL: color.critical,
+  HIGH: color.high,
+  MEDIUM: color.medium,
+  LOW: color.low,
 };
 
-// Deep-scan only runs on the highest-severity findings — QVAC is slow
-// relative to regex, so don't burn tokens explaining a MEDIUM http:// url.
 const DEEP_SCAN_SEVERITIES: Severity[] = ['CRITICAL', 'HIGH'];
 
 export default function GuardModeScreen() {
@@ -23,7 +22,7 @@ export default function GuardModeScreen() {
   const [tps, setTps] = useState<number | null>(null);
   const [deepScanNote, setDeepScanNote] = useState<string | null>(null);
 
-  const { findings, setFindings, scansToday, isPro, incrementScanCount, resetDailyIfNeeded } =
+  const { findings, setFindings, scansToday, isPro, incrementScanCount, resetDailyIfNeeded, recordScan } =
     useNibrasStore();
 
   resetDailyIfNeeded();
@@ -57,6 +56,7 @@ export default function GuardModeScreen() {
       const results = scanProject(files);
       setFindings(results);
       incrementScanCount();
+      recordScan('guard', files.length, results);
 
       const topFindings = results.filter((f) => DEEP_SCAN_SEVERITIES.includes(f.severity));
       if (topFindings.length > 0) {
@@ -172,48 +172,48 @@ function FindingCard({ finding }: { finding: Finding }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#0B0F14' },
-  content: { padding: 20, paddingBottom: 60 },
-  title: { fontSize: 28, fontWeight: '700', color: '#F3F4F6' },
-  subtitle: { fontSize: 14, color: '#9CA3AF', marginTop: 4, marginBottom: 20 },
+  container: { flex: 1, backgroundColor: color.bg },
+  content: { padding: spacing.xl, paddingBottom: 60 },
+  title: { ...t.displayLarge, color: color.textPrimary },
+  subtitle: { ...t.body, color: color.textSecondary, marginTop: spacing.xs, marginBottom: spacing.xl },
   scanButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
+    backgroundColor: color.aiAccent,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.lg,
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
   scanButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  modelLoadBox: { backgroundColor: '#151A21', borderRadius: 8, padding: 12, marginBottom: 16 },
-  modelLoadText: { color: '#9CA3AF', fontSize: 13, textAlign: 'center' },
+  modelLoadBox: { backgroundColor: color.surface, borderRadius: radius.sm, padding: spacing.md, marginBottom: spacing.lg },
+  modelLoadText: { color: color.textSecondary, fontSize: 13, textAlign: 'center' },
   tpsBox: {
     alignSelf: 'center',
-    backgroundColor: '#0F2E2B',
+    backgroundColor: color.pulseAccentBg,
     borderWidth: 1,
-    borderColor: '#1E6E68',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    marginBottom: 16,
+    borderColor: color.pulseAccentBorder,
+    borderRadius: radius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginBottom: spacing.lg,
   },
-  tpsText: { color: '#38BDB0', fontSize: 12, fontWeight: '700' },
-  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
-  badge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8 },
+  tpsText: { color: color.pulseAccent, fontSize: 12, fontWeight: '700' },
+  summaryRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.lg },
+  badge: { paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radius.sm },
   badgeText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   deepScanCard: {
-    backgroundColor: '#0F1A2E',
+    backgroundColor: color.aiAccentBg,
     borderWidth: 1,
-    borderColor: '#1E3A6E',
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 16,
+    borderColor: color.aiAccentBorder,
+    borderRadius: radius.md,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
   },
-  deepScanLabel: { color: '#5B8DEF', fontSize: 10, fontWeight: '800', marginBottom: 6, letterSpacing: 1 },
-  deepScanText: { color: '#E5E9F0', fontSize: 13, lineHeight: 19 },
-  card: { backgroundColor: '#151A21', borderLeftWidth: 4, borderRadius: 8, padding: 12, marginBottom: 10 },
-  cardSeverity: { fontSize: 11, fontWeight: '800', marginBottom: 4 },
-  cardMessage: { color: '#F3F4F6', fontSize: 14, marginBottom: 6 },
-  cardMeta: { color: '#6B7280', fontSize: 12, marginBottom: 4 },
-  cardSnippet: { color: '#9CA3AF', fontSize: 12, fontFamily: 'monospace' },
-  empty: { color: '#6B7280', textAlign: 'center', marginTop: 40 },
+  deepScanLabel: { color: color.aiAccent, fontSize: 10, fontWeight: '800', marginBottom: spacing.xs, letterSpacing: 1 },
+  deepScanText: { color: color.textPrimary, fontSize: 13, lineHeight: 19 },
+  card: { backgroundColor: color.surface, borderLeftWidth: 4, borderRadius: radius.sm, padding: spacing.md, marginBottom: spacing.sm },
+  cardSeverity: { fontSize: 11, fontWeight: '800', marginBottom: spacing.xs },
+  cardMessage: { color: color.textPrimary, fontSize: 14, marginBottom: spacing.xs },
+  cardMeta: { color: color.textTertiary, fontSize: 12, marginBottom: spacing.xs },
+  cardSnippet: { color: color.textSecondary, fontSize: 12, fontFamily: 'monospace' },
+  empty: { color: color.textTertiary, textAlign: 'center', marginTop: 40 },
 });
