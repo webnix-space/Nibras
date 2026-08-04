@@ -10,14 +10,34 @@
  *   modelType changed from "llamacpp-completion" to "llm".
  *   Old (Webnix, 0.13.3):  modelType: "llamacpp-completion"
  *   New (0.16.0 docs):     modelType: "llm"
- * Fixed below. If loadModel() throws an unknown-modelType error on-device,
- * this is the first thing to re-check.
+ * Confirmed correct in loadModel() Overload 1 + Expo tutorial example.
  *
- * UNVERIFIED beyond the modelType rename: whether modelConfig shape
- * ({ device, ctx_size }), the tools param on completion(), or run.toolCalls
- * still work identically. Docs samples don't show tools/modelConfig in
- * 0.16 examples — could mean unchanged, could mean undocumented-here.
- * First device run on 0.16 IS the test for this, not this rewrite.
+ * CONFIRMED CHANGE (this rewrite, v0.16.x API summary):
+ *   completion() still returns a run object, but tokenStream / toolCalls /
+ *   stats are now DEPRECATED legacy fields that derive internally from the
+ *   canonical surfaces: `run.events` (AsyncIterable<CompletionEvent>) and
+ *   `run.final` (Promise<CompletionFinal>). Legacy fields still work but
+ *   this rewrite moves onto the canonical path per docs guidance, since
+ *   building new code on a documented-deprecated surface on day one is a
+ *   bad bet with zero local debug loop.
+ *
+ * FIXED BUG (this rewrite): history was sending system prompt as a second
+ * `user` turn instead of `role: 'system'`. Every SDK example (Bare
+ * quickstart, Expo tutorial) uses role:'system' for the system message.
+ * Silent quality degradation, not a crash — the kind of thing you don't
+ * notice until scan explanations are consistently mediocre.
+ *
+ * UNVERIFIED, CONFIRM ON FIRST DEVICE RUN:
+ *   - Exact shape/field names inside `final.stats` at the SDK layer (the
+ *     docs only give CompletionStats field names for the OpenAI HTTP
+ *     adapter, not the raw SDK `final.stats` object). tokensPerSecond
+ *     below is a best-effort read — log the full object on first run and
+ *     adjust the field name if it doesn't match.
+ *   - Whether skipping close() after unloadModel() leaks the Bare worker
+ *     across repeated Guard Mode scans on RN. Lifecycle docs list
+ *     loadModel → task → unloadModel → close() as the full flow; we
+ *     deliberately skip close() to keep the model warm between scans in a
+ *     resident mobile app. Watch memory across a long scan session.
  *
  * MODEL NOTE: Webnix ships Llama 3.2 1B / Qwen3 0.6B — NOT the Qwen 3.2 1B
  * your Business Case throughput number (7-11 t/s) was measured on. That
@@ -90,8 +110,8 @@ export async function loadModel(onProgress?: (pct: number) => void): Promise<voi
     const model = MODELS.find((m) => m.key === ACTIVE_MODEL_KEY)!;
     const id = await sdk.loadModel({
       modelSrc: model.src,
-      modelType: 'llm', // 0.16.0: renamed from 'llamacpp-completion'
-      modelConfig: { device: 'cpu', ctx_size: 2048 }, // UNVERIFIED on 0.16 — confirm on device
+      modelType: 'llm', // 0.16.0: renamed from 'llamacpp-completion' — confirmed correct
+      modelConfig: { device: 'cpu', ctx_size: 2048 }, // confirmed shape via LlmLlamacpp config + Expo example
       onProgress: (p: any) => onProgress?.(Math.round(p?.percentage ?? (p ?? 0) * 100)),
     });
     llmModelId = id;
@@ -100,6 +120,10 @@ export async function loadModel(onProgress?: (pct: number) => void): Promise<voi
   }
 }
 
+/**
+ * Unloads the model. Deliberately does NOT call sdk.close() — see header
+ * note. Call close() explicitly at full app teardown if you add that path.
+ */
 export async function unloadModel(): Promise<void> {
   if (!llmModelId) return;
   await sdk.unloadModel({ modelId: llmModelId, clearStorage: false }).catch(() => {});
@@ -124,6 +148,10 @@ export interface QvacGenerateResult {
  * review, hallucinated-package reasoning, plain-English explanations —
  * layered ON TOP of the fast regex pass in patternRules.ts, never as the
  * first-pass scan.
+ *
+ * Rewritten onto the canonical events/final surface (see header). Manual
+ * token accumulation via contentDelta events replaces the deprecated
+ * tokenStream; final stats/toolCalls come from `run.final`.
  */
 export async function generate(
   systemPrompt: string,
@@ -136,7 +164,7 @@ export async function generate(
   const run = sdk.completion({
     modelId: llmModelId,
     history: [
-      { role: 'user', content: systemPrompt },
+      { role: 'system', content: systemPrompt }, // FIXED: was role:'user' — degraded instruction-following
       { role: 'user', content: userPrompt },
     ],
     stream: true,
@@ -144,21 +172,44 @@ export async function generate(
   });
 
   let raw = '';
-  let tokens = 0;
-  for await (const token of run.tokenStream) {
-    raw += token;
-    tokens++;
+  let deltaTokenCount = 0;
+
+  for await (const event of run.events) {
+    // contentDelta is the token-by-token text surface on the new API.
+    // toolCall events pass through untouched — final.toolCalls picks them up.
+    if (event.type === 'contentDelta') {
+      raw += event.text;
+      deltaTokenCount++;
+    }
   }
 
-  const toolCalls = (await run.toolCalls?.catch(() => [])) || [];
+  const final = await run.final;
   const durationMs = Date.now() - t0;
-  const tokensPerSecond = tokens / (durationMs / 1000);
+
+  // UNVERIFIED FIELD NAME: docs don't give final.stats' exact shape at the
+  // SDK layer (only the HTTP-adapter CompletionStats). Try the documented
+  // field name first, fall back to a delta-count/time estimate so this
+  // never throws — log the raw object on first device run and correct
+  // this fallback chain once you see the real shape.
+  const statsAny: any = (final as any)?.stats ?? {};
+  const tokensPerSecond =
+    typeof statsAny.tokensPerSecond === 'number'
+      ? statsAny.tokensPerSecond
+      : deltaTokenCount / (durationMs / 1000);
+
+  const toolCallsRaw = (final as any)?.toolCalls ?? [];
+  const toolCalls = (Array.isArray(toolCallsRaw) ? toolCallsRaw : []).map((c: any) => ({
+    name: c.name ?? c.call?.name,
+    arguments: c.arguments || c.input || c.call?.arguments || {},
+  }));
+
+  const finalText = ((final as any)?.content ?? raw) as string;
 
   return {
-    text: raw.replace(/<think>[\s\S]*?<\/think>/g, '').trim(),
+    text: finalText.replace(/<think>[\s\S]*?<\/think>/g, '').trim(),
     tokensPerSecond,
     durationMs,
-    toolCalls: toolCalls.map((c: any) => ({ name: c.name, arguments: c.arguments || c.input || {} })),
+    toolCalls,
   };
 }
 
@@ -166,6 +217,10 @@ export async function generate(
  * Re-test of the throughput number. Run this the moment loadModel() succeeds
  * on a real device and log it — this is the single most important number
  * per the Business Case doc, and it resets every time the model changes.
+ *
+ * Also log the raw `final.stats` object here on first run — this is your
+ * one chance to confirm the tokensPerSecond field name in generate() above
+ * before it silently falls back to the estimate.
  */
 export async function benchmarkThroughput(): Promise<number> {
   await loadModel();
