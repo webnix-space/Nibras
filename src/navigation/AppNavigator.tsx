@@ -1,7 +1,12 @@
 import React from 'react';
 import { createDrawerNavigator, DrawerContentComponentProps } from '@react-navigation/drawer';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// SDK 56: @expo/vector-icons is deprecated in favor of scoped
+// @react-native-vector-icons/* packages. Using the /static import since
+// this is an EAS dev/production build (not Expo Go) — fonts are bundled
+// at native build time. Requires '@react-native-vector-icons/ionicons'
+// in app.config.js plugins array (added) and as a package.json dependency.
+import { Ionicons } from '@react-native-vector-icons/ionicons/static';
 import DashboardScreen from '../screens/DashboardScreen';
 import GuardModeScreen from '../screens/GuardModeScreen';
 import VaultModeScreen from '../screens/VaultModeScreen';
