@@ -36,6 +36,7 @@ const expoConfig = {
   },
   plugins: [
     'expo-document-picker',
+    '@react-native-vector-icons/ionicons', // SDK 56: @expo/vector-icons deprecated, static font requires this plugin
     [
       'expo-build-properties',
       {
