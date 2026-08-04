@@ -62,11 +62,13 @@ const expoConfig = {
 };
 
 module.exports = ({ config }) => {
-  return {
+  // Dynamic app.config.js must return the ExpoConfig object directly —
+  // NOT { ...config, expo: ... }. That malformed shape is what produced
+  // "Config `_internal.projectRoot` isn't defined by expo-cli" on EAS:
+  // the loader choked trying to read _internal off a top-level object
+  // that was never a valid ExpoConfig in the first place.
+  return withQvacSDK({
     ...config,
-    expo: withQvacSDK({
-      ...config.expo,
-      ...expoConfig,
-    }),
-  };
+    ...expoConfig,
+  });
 };
