@@ -61,8 +61,12 @@ const expoConfig = {
   },
 };
 
-module.exports = () => {
+module.exports = ({ config }) => {
   return {
-    expo: withQvacSDK(expoConfig),
+    ...config,
+    expo: withQvacSDK({
+      ...config.expo,
+      ...expoConfig,
+    }),
   };
 };
