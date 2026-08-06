@@ -6,6 +6,7 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
+    "eas-build-post-install": "node ./scripts/bundle-qvac.js",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
   },
