@@ -6,7 +6,6 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "eas-build-post-install": "node ./scripts/bundle-qvac.js",
     "build:preview": "eas build --profile preview --platform android",
     "build:prod": "eas build --profile production --platform android"
   },
@@ -40,7 +39,6 @@
   "devDependencies": {
     "bare-pack": "^1.5.1",
     "@babel/core": "^7.25.0",
-    "@qvac/cli": "^0.6.0",
     "typescript": "~6.0.3",
     "@types/react": "~19.2.0"
   },
