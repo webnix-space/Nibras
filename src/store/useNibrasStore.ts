@@ -23,6 +23,11 @@ interface ScanState {
   isPro: boolean;
   history: ScanRecord[];
 
+  // Rehydration status — gate any UI that depends on persisted state
+  // (e.g. Dashboard, Pro-gated actions) on this before trusting values.
+  hasHydrated: boolean;
+  hydrationError: string | null;
+
   incrementScanCount: () => void;
   resetDailyIfNeeded: () => void;
   setFindings: (f: Finding[]) => void;
@@ -34,6 +39,7 @@ interface ScanState {
 
 const FREE_DAILY_LIMIT = 5;
 const MAX_HISTORY = 200; // cap so AsyncStorage payload doesn't grow unbounded
+const STORAGE_KEY = 'nibras-store-v1';
 
 function countBySeverity(findings: Finding[]): Record<Severity, number> {
   const counts: Record<Severity, number> = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
@@ -51,6 +57,9 @@ export const useNibrasStore = create<ScanState>()(
       lastScanAt: null,
       isPro: false,
       history: [],
+
+      hasHydrated: false,
+      hydrationError: null,
 
       incrementScanCount: () =>
         set((s) => ({ scansToday: s.scansToday + 1, lastScanAt: Date.now() })),
@@ -88,7 +97,7 @@ export const useNibrasStore = create<ScanState>()(
       clearHistory: () => set({ history: [] }),
     }),
     {
-      name: 'nibras-store-v1',
+      name: STORAGE_KEY,
       storage: createJSONStorage(() => AsyncStorage),
       // Only persist what should survive app restarts. `findings` and
       // `scanInProgress` are current-session UI state, not history —
@@ -101,9 +110,44 @@ export const useNibrasStore = create<ScanState>()(
         history: s.history,
       }),
       version: 1,
+
+      // CRITICAL: without this, a single corrupted/malformed entry in
+      // AsyncStorage (bad JSON, a Finding with an unexpected shape, a
+      // version mismatch after a schema change) causes rehydration to
+      // throw and NEVER RESOLVE. Any component gating render/interaction
+      // on store readiness hangs forever with the last-painted frame
+      // still on screen and zero touch response — freeze survives app
+      // restart because the corruption lives on disk, not in memory.
+      // This makes a corrupted store self-heal on next launch instead.
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('[useNibrasStore] Rehydration failed, wiping corrupted state:', error);
+          AsyncStorage.removeItem(STORAGE_KEY).catch((e) =>
+            console.error('[useNibrasStore] Failed to clear corrupted storage:', e)
+          );
+          useNibrasStore.setState({
+            hasHydrated: true,
+            hydrationError: error instanceof Error ? error.message : String(error),
+          });
+          return;
+        }
+        useNibrasStore.setState({ hasHydrated: true, hydrationError: null });
+      },
     }
   )
 );
+
+// Safety net: some RN/AsyncStorage edge cases can leave onRehydrateStorage
+// uncalled (e.g. storage adapter itself throws synchronously before persist
+// can attach the callback). Force hasHydrated true after a timeout so the
+// UI can never hang indefinitely waiting on a hydration signal that will
+// never come.
+setTimeout(() => {
+  if (!useNibrasStore.getState().hasHydrated) {
+    console.warn('[useNibrasStore] Hydration timeout — forcing ready state.');
+    useNibrasStore.setState({ hasHydrated: true });
+  }
+}, 3000);
 
 export function canScan(): boolean {
   const { isPro, scansToday } = useNibrasStore.getState();
