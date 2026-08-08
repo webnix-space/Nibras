@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, ScrollView, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -22,10 +22,23 @@ export default function GuardModeScreen() {
   const [tps, setTps] = useState<number | null>(null);
   const [deepScanNote, setDeepScanNote] = useState<string | null>(null);
 
-  const { findings, setFindings, scansToday, isPro, incrementScanCount, resetDailyIfNeeded, recordScan } =
-    useNibrasStore();
+  // SELECTOR SUBSCRIPTIONS ONLY — see DashboardScreen.tsx / VaultModeScreen.tsx
+  // for why. An unselected useNibrasStore() plus an unwrapped
+  // resetDailyIfNeeded() call on every render is what caused the app-wide
+  // freeze: any set() call anywhere re-renders every screen holding an
+  // unselected subscription, compounding into a render storm that pegs
+  // the JS thread hard enough to stop touch events from being processed.
+  const findings = useNibrasStore((s) => s.findings);
+  const setFindings = useNibrasStore((s) => s.setFindings);
+  const scansToday = useNibrasStore((s) => s.scansToday);
+  const isPro = useNibrasStore((s) => s.isPro);
+  const incrementScanCount = useNibrasStore((s) => s.incrementScanCount);
+  const resetDailyIfNeeded = useNibrasStore((s) => s.resetDailyIfNeeded);
+  const recordScan = useNibrasStore((s) => s.recordScan);
 
-  resetDailyIfNeeded();
+  useEffect(() => {
+    resetDailyIfNeeded();
+  }, [resetDailyIfNeeded]);
 
   async function handlePickAndScan() {
     if (!canScan()) {
