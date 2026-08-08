@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Pressable } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { useNibrasStore, getAggregateStats, FREE_DAILY_LIMIT } from '../store/useNibrasStore';
@@ -52,10 +52,23 @@ function RiskPulse({ totals, totalFindings }: { totals: Record<Severity, number>
 
 export default function DashboardScreen() {
   const navigation = useNavigation<any>();
-  const { history, scansToday, isPro } = useNibrasStore();
-  const { totals, totalFindings, totalScans } = getAggregateStats(history);
 
-  const recentScans = history.slice(0, 8);
+  // SELECTOR SUBSCRIPTIONS ONLY — do not destructure the whole store here.
+  // useNibrasStore() with no selector subscribes to every field (findings,
+  // scanInProgress, hasHydrated, lastScanAt, etc). Any set() call anywhere
+  // in the app — including resetDailyIfNeeded() firing on every render of
+  // Guard/Vault screens — then re-renders THIS screen too, even though
+  // none of those fields are used here. On a non-trivial history array
+  // that re-render re-runs getAggregateStats() and remaps recentScans
+  // every time, which compounds into a render storm that can peg the JS
+  // thread hard enough to make the UI look frozen (old frame on screen,
+  // no touch response) without ever throwing or crashing.
+  const history = useNibrasStore((s) => s.history);
+  const scansToday = useNibrasStore((s) => s.scansToday);
+  const isPro = useNibrasStore((s) => s.isPro);
+
+  const { totals, totalFindings, totalScans } = useMemo(() => getAggregateStats(history), [history]);
+  const recentScans = useMemo(() => history.slice(0, 8), [history]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
