@@ -28,6 +28,7 @@ const expoConfig = {
   android: {
     package: 'com.webnixhub.nibras',
     minSdkVersion: 29,
+    allowBackup: false, // prevents Android auto-restoring AsyncStorage/app data on reinstall
     adaptiveIcon: {
       foregroundImage: './assets/adaptive-icon.png',
       backgroundColor: '#0B0F14',
