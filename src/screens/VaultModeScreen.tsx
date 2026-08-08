@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -41,8 +41,21 @@ export default function VaultModeScreen() {
   const [tps, setTps] = useState<number | null>(null);
   const [semanticError, setSemanticError] = useState<string | null>(null);
 
-  const { scansToday, isPro, incrementScanCount, resetDailyIfNeeded, recordScan } = useNibrasStore();
-  resetDailyIfNeeded();
+  // SELECTOR SUBSCRIPTIONS ONLY — see DashboardScreen.tsx for why. An
+  // unselected useNibrasStore() here plus an unwrapped resetDailyIfNeeded()
+  // call on every render is what caused the app-wide freeze: any set() call
+  // anywhere re-renders every screen holding an unselected subscription,
+  // compounding into a render storm that pegs the JS thread hard enough to
+  // stop touch events from being processed.
+  const scansToday = useNibrasStore((s) => s.scansToday);
+  const isPro = useNibrasStore((s) => s.isPro);
+  const incrementScanCount = useNibrasStore((s) => s.incrementScanCount);
+  const resetDailyIfNeeded = useNibrasStore((s) => s.resetDailyIfNeeded);
+  const recordScan = useNibrasStore((s) => s.recordScan);
+
+  useEffect(() => {
+    resetDailyIfNeeded();
+  }, [resetDailyIfNeeded]);
 
   async function handlePickFile() {
     const result = await DocumentPicker.getDocumentAsync({ type: '*/*' });
